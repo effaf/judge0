@@ -34,6 +34,15 @@ module IsolateRunner
 
   def self.perform_later(submission)
     submission.update(status: Status.queue, queued_at: DateTime.now, queue_host: ENV["HOSTNAME"])
+    if ENV['ENABLE_AI_ANALYSIS'] == 'true'
+      begin
+        ai_assistant = AiCodeAssistant.new
+        analysis = ai_assistant.analyze_code(submission)
+        submission.update(ai_feedback: analysis)
+      rescue => e
+        Rails.logger.error("AI Analysis failed: #{e.message}")
+      end
+    end
     IsolateJob.perform_later(submission.id)
   end
 end
